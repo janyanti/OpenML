@@ -57,7 +57,6 @@ class NN:
         num_outputs = self.model[-1]
         self.results = forward_propagate(self.X, self.params, self.layers, self.activation_func, self.output_func)
         Y_h = self.results[0]
-        print(np.round(np.subtract(Y_h, self.Y)))
         if self.output_func == 'sigmoid' or num_outputs == 1:
             predict_logistic_regression(Y_h, self.Y)
         elif self.output_func == 'softmax' or num_outputs > 1:
@@ -68,27 +67,27 @@ class NN:
 #################################
 
 # activation function that returns a value between 0 and 1
-def sigmoid_func(Z):
+def sigmoid(Z):
     return (1/(1+np.exp(-Z)))
 
 # activation function that returns a value between -1 and 1
-def tanh_func(Z):
+def tanh(Z):
     return np.tanh(Z)
 
 # activation function that returns the identity of input or 0 if less than 0
-def relu_func(Z):
+def relu(Z):
     return np.maximum(0,Z)
 
 # activation function for multiclass outputs | returns probability measure
-def softmax_func(Z):
+def softmax(Z):
     ex = np.exp(Z)
     return ex/np.sum(ex, axis=0)
 
 activations = {
-    'sigmoid' :sigmoid_func,
-    'tanh' : tanh_func,
-    'relu' : relu_func,
-    'softmax' : softmax_func
+    'sigmoid' :sigmoid,
+    'tanh' : tanh,
+    'relu' : relu,
+    'softmax' : softmax
 }
 
 #################################
@@ -205,7 +204,7 @@ def one_hot_encoder(Y, n):
     return result
 
 # performs forward propagtion
-def forward_propagate(X, parameters, layers, a_function=relu_func, o_function=sigmoid_func):
+def forward_propagate(X, parameters, layers, a_function=relu, o_function=sigmoid):
     activate_h = a_function # activation function for hidden layers
     activate_o = o_function # activation function for output layer
     A = X # current layer matrix(activation)
@@ -294,7 +293,6 @@ def predict_logistic_regression(Y_h, Y):
 def predict_multi_class_classifier(Y_h, Y):
     m = max(Y.shape[0], Y.shape[1])
     encoded_Y_h = softmax_converter(Y_h)
-    print(Y.shape, encoded_Y_h.shape)
     assert(encoded_Y_h.shape == Y.shape)
     result = compute_prediction_accuracy(encoded_Y_h, Y)
     print(result)
@@ -310,7 +308,6 @@ def compute_prediction_accuracy(Y_h, Y):
     m = Y.shape[1]
     num_incorrect = np.count_nonzero(Y_h - Y)/2
     num_correct = m - num_incorrect
-    print(num_correct, m)
     accuracy = (num_correct/m) * 100
     accuracy_string = '%.3f %s of predictions correct' %(accuracy, '%')
     return accuracy_string
