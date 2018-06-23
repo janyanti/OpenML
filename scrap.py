@@ -12,16 +12,16 @@ import matplotlib.pyplot as plt
 from drawnow import *
 from tensorflow.examples.tutorials.mnist import input_data
 
-
-mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
-
-X_train = np.vstack([img.reshape(-1,) for img in mnist.train.images])
-y_train = mnist.train.labels
-print(y_train.shape)
-
-X_train = X_train.T
-y_train = y_train.T
-print(X_train.shape, y_train.shape)
+np.random.seed(23)
+# mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+#
+# X_train = np.vstack([img.reshape(-1,) for img in mnist.train.images])
+# y_train = mnist.train.labels
+# print(y_train.shape)
+#
+# X_train = X_train.T
+# y_train = y_train.T
+# print(X_train.shape, y_train.shape)
 
 # with open('data.txt', 'w') as file:
 #     file.write('X:' + str(X_train))
@@ -50,16 +50,24 @@ X = X.T
 # test = np.array(test, dtype='float')
 
 # Number of training examples
-m = X_train.shape[1]
+# m = X_train.shape[1]
 # Y = np.reshape(data.target, (1,m))
 # number of input/output neurons
-n_x = X_train.shape[0]
+# n_x = X_train.shape[0]
 # n_y = Y.shape[0]
 n_y = 10
 
+
+data_1 = load_iris()
+X_train_1 = data_1.data
+X_train_1 = X_train_1.T
+m = X_train_1.shape[1]
+Y_train_1 = np.reshape(data_1.target.T, (1,m))
+n_x = X_train_1.shape[0]
+n_y = 3                                 # set value for number of output neurons
+model_1 = [n_x, 4, 6, 4, n_y]
 # nueral network model
 model = [n_x, 6, 8, 5, n_y]
-
 
 # number of layers
 layers = len(model) - 1
@@ -83,7 +91,8 @@ def relu(Z):
 
 # activation function for multiclass outputs | returns probability measure
 def softmax(Z):
-    ex = np.exp(Z - np.max(Z))
+    max = np.apply_along_axis(np.max, 0, Z)
+    ex = np.exp(Z)
     return ex/np.sum(ex, axis=0)
 
 activations = {
@@ -107,6 +116,8 @@ def tanh_prime(Z):
 
 # returns derivative of relu function
 def relu_prime(Z):
+    Z[np.isnan(Z)] = 0
+    Z[np.isinf(Z)] = 1
     Z[Z<=0] = 0
     Z[Z>0] = 1
     return Z
@@ -130,7 +141,6 @@ Y denotes the labels(correct) predictions
 # returns the cost of the neural network using L2 Loss
 def squared_error(Y_h, Y):
     m = Y.shape[1]
-    np.log(Y_h)
     square_comp = np.square(Y_h, Y)/2
     sum_layers = np.sum(square_comp, axis=0)
     mean = np.mean(sum_layers)
@@ -138,11 +148,31 @@ def squared_error(Y_h, Y):
 
 # returns the cost of the neural network using Log Loss
 def log_loss(Y_h, Y):
+    # print(Y_h, Y)
     m = Y.shape[1]
-    log_comp = np.multiply(Y, np.log(Y_h)) + np.multiply((1-Y), np.log((1-Y_h)))
+    Y_h[Y_h<=0] = 10**-8
+    # log_comp = log_comparison(Y_h, Y) + log_comparison(1-Y_h, 1-Y)
+    log_comp =  np.multiply(Y, np.log(Y_h)) + np.multiply((1-Y), np.log((1-Y_h)))
     sum_layers = - np.sum(log_comp, axis=0)
     mean = np.mean(sum_layers)
     return np.squeeze(mean)
+
+def log_comparison(Y_h, Y):
+    rows, cols = Y.shape[0], Y.shape[1]
+    result = np.zeros((rows, cols))
+    for row in range(rows):
+        for col in range(cols):
+            y_h, y = Y_h[row, col], Y[row, col]
+            if y == 0:
+                continue
+            else:
+                try:
+                    comp = np.multiply(y, np.log(y_h))
+                except:
+                    # print(y_h)
+                    comp = np.multiply(y, np.log(y_h+0.00001))
+                result[row, col] = comp
+    return result
 
 # returns the cost of the neural network using Cross Entropy
 def cross_entropy(Y_h, Y):
@@ -197,9 +227,9 @@ def one_hot_encoder(Y, n):
         val = Y[0,i]
         result[val,i] = 1
     return result
-
+relu
 # performs forward propagtion
-def forward_propagate(X, parameters, layers, a_function='tanh', o_function='softmax'):
+def forward_propagate(X, parameters, layers, a_function='relu', o_function='softmax'):
     activate_h = activations[a_function] # activation function for hidden layers
     activate_o = activations[o_function] # activation function for output layer
     A = X # current layer matrix(activation)
@@ -225,7 +255,7 @@ def forward_propagate(X, parameters, layers, a_function='tanh', o_function='soft
     assert(A.shape[0] == n_y)
     return A, neuron_cache # final output and neuron_cache returned
 
-def calculate_cost(Y, data, layers, loss_function='cross_entropy'):
+def calculate_cost(Y, data, layers, loss_function='log_loss'):
     Y_h, cache = data
     cost_function = losses[loss_function]
     return cost_function(Y_h, Y)
@@ -254,7 +284,6 @@ def backwards_propagate(X, Y, cache, layers,  l_function='log_loss'):
 
 # performs forward propagtion
 def backwards_propagate_helper(X, Y, cache, pos, dZ):
-    update = []
     m = X.shape[1]
     key_db, key_dW = 'db' + str(pos), 'dW' + str(pos)
     key_A = 'A' + str(pos-1)
@@ -277,8 +306,8 @@ def update_params(params, gradients, layers, learning_rate=0.0005):
 # X = np.random.randn(n_x, m)
 # Y = np.random.randn(model[-1],m)
 
-params = define_parameters(model)
-# y_train = one_hot_encoder(y_train, n_y)
+params = define_parameters(model_1)
+Y_train_1 = one_hot_encoder(Y_train_1, n_y)
 cost_list = []
              #Set y min and max values based on known voltage quantity
 plt.grid(True)
@@ -288,13 +317,13 @@ plt.axis([0, 50000, 0, 10])
 plt.ion()
 
 
-print(X_train)
-for i in range (10000):
+print(X_train_1)
+for i in range (50000):
     cost_list = []
     index = []
-    data = forward_propagate(X_train, params, layers)
-    cost = calculate_cost(y_train, data, layers)
-    grads = backwards_propagate(X_train, y_train, data, layers)
+    data = forward_propagate(X_train_1, params, layers)
+    cost = calculate_cost(Y_train_1, data, layers)
+    grads = backwards_propagate(X_train_1, Y_train_1, data, layers)
     params = update_params(params, grads, layers)
     if (i % 1000 == 0) :
         print(cost)
