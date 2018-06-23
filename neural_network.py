@@ -57,6 +57,7 @@ class NN:
         num_outputs = self.model[-1]
         self.results = forward_propagate(self.X, self.params, self.layers, self.activation_func, self.output_func)
         Y_h = self.results[0]
+        print(np.round(np.subtract(Y_h, self.Y)))
         if self.output_func == 'sigmoid' or num_outputs == 1:
             predict_logistic_regression(Y_h, self.Y)
         elif self.output_func == 'softmax' or num_outputs > 1:
@@ -295,7 +296,7 @@ def predict_multi_class_classifier(Y_h, Y):
     encoded_Y_h = softmax_converter(Y_h)
     print(Y.shape, encoded_Y_h.shape)
     assert(encoded_Y_h.shape == Y.shape)
-    result = compute_prediction_accuracy(Y_h, Y)
+    result = compute_prediction_accuracy(encoded_Y_h, Y)
     print(result)
 
 # converts a softmax matrix to a matrix of only zeros and ones
@@ -306,8 +307,10 @@ def softmax_converter(Y_h):
     return one_hot_encoded
 
 def compute_prediction_accuracy(Y_h, Y):
-    correct_predictions = np.equal(Y, encoded_Y_h)
-    num_correct = np.count_nonzero(score)
-    accuracy = num_correct/m
-    accuracy_string = '%.3f Percent of predictions correct' %(accuracy)
+    m = Y.shape[1]
+    num_incorrect = np.count_nonzero(Y_h - Y)/2
+    num_correct = m - num_incorrect
+    print(num_correct, m)
+    accuracy = (num_correct/m) * 100
+    accuracy_string = '%.3f %s of predictions correct' %(accuracy, '%')
     return accuracy_string
