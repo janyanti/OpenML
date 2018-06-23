@@ -16,7 +16,7 @@ from sklearn.datasets import load_breast_cancer
 
 # defining training data and neural network model
 
-# Load data from sklearn for Iris multiclass classification
+# Load data from sklearn for Iris multi-class classification
 data_1 = load_iris()
 X_train_1 = data_1.data
 X_train_1 = X_train_1.T
@@ -39,8 +39,21 @@ model_2 = [n_x, 4, 6, 4, n_y]
 # Define neural networks
 
 # Iris Mutli-Class Classifier
+"""
+NN class takes in a model, input training data and target data
+as arguments.
+The model argument is a Python list that defines the layers in a
+neural network. The length of the defines how 'deep' the neural_network is,
+Each element of the list defines the number of neurons at the given layer.
+
+ex: model = [4, 5, 7, 3] |
+This model is a neural network with 4 layers
+it has 4 input neurons or features and 3 output neurons(classes)
+The 1st hidden layer has 5 neurons; the 2nd hidden layer has 7 neurons
+"""
+
 NN1 = NN(model_1, X_train_1, Y_train_1)
-NN1.activation_function('relu')
+NN1.activation_function('tanh')
 NN1.output_function('softmax')
 NN1.loss_function('cross_entropy')
 

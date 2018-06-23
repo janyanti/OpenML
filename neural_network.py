@@ -107,11 +107,15 @@ def relu_prime(Z):
     Z[Z<=0] = 0
     Z[Z>0] = 1
     return Z
+# returns derivative of softmax_func | NEEDS OVERHAULS
+def softmax_prime(Z):
+    return Z
 
 activation_derivatives = {
     'sigmoid' :sigmoid_prime,
     'tanh' : tanh_prime,
-    'relu' : relu_prime
+    'relu' : relu_prime,
+    'softmax': softmax_prime
 }
 
 ##############################
@@ -184,7 +188,7 @@ def define_parameters(model):
         key_w, key_b = ('W' + pos ), ('b' + pos)
         n_h = model[layer+1] # depth of the layer
         weights = np.random.randn(n_h, n_temp)
-        biases = np.zeros((n_h, 1))
+        biases = np.random.randn(n_h, 1)
         paramaters[key_w] = weights
         paramaters[key_b] = biases
         n_temp = n_h
@@ -240,19 +244,19 @@ def backwards_propagate(X, Y, cache, layers, derivative, l_function='log_loss'):
         if (layer == layers):
             dZ =  output_error(Y_h, Y, l_function)
             E = dZ # donetes error
-            gradient = backwards_propagate_helper(X, Y, cache, pos, dZ)
+            gradient = backwards_propagate_params(X, Y, cache, pos, dZ)
         else:
             key_W, key_Z = 'W' + str(pos+1) , 'Z' + str(pos)
             W, Z = cache[key_W], cache[key_Z]
             g_prime_Z = a_derivative(Z)
             dZ = np.dot(W.T, E) * g_prime_Z
             E = dZ
-            gradient = backwards_propagate_weights(X, Y, cache, pos, dZ)
+            gradient = backwards_propagate_params(X, Y, cache, pos, dZ)
         gradient_updates.update(gradient)
     return gradient_updates
 
 # performs weights and biases gradient calculations
-def backwards_propagate_weights(X, Y, cache, pos, dZ):
+def backwards_propagate_params(X, Y, cache, pos, dZ):
     update = []
     m = X.shape[1]
     key_db, key_dW = 'db' + str(pos), 'dW' + str(pos)
@@ -287,9 +291,10 @@ def predict_logistic_regression(Y_h, Y):
     print(result)
 
 def predict_multi_class_classifier(Y_h, Y):
-    assert(Y_h.shape == Y.shape)
     m = max(Y.shape[0], Y.shape[1])
     encoded_Y_h = softmax_converter(Y_h)
+    print(Y.shape, encoded_Y_h.shape)
+    assert(encoded_Y_h.shape == Y.shape)
     result = compute_prediction_accuracy(Y_h, Y)
     print(result)
 
