@@ -23,10 +23,10 @@ X_train = X_train.T
 y_train = y_train.T
 print(X_train.shape, y_train.shape)
 
-with open('data.txt', 'w') as file:
-    file.write('X:' + str(X_train))
-    file.write('y' + str(y_train))
-    file.close()
+# with open('data.txt', 'w') as file:
+#     file.write('X:' + str(X_train))
+#     file.write('y' + str(y_train))
+#     file.close()
 
 
 """

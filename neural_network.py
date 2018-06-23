@@ -18,9 +18,11 @@ import matplotlib.pyplot as plt
 
 # define class structure for neural network
 class NN:
-    def __init__(self, model, X, Y, learning_rate=0.005):
+    def __init__(self, model, X, Y, learning_rate=0.005, one_hot=False):
         self.model = model
-        self.X, self.Y = X, Y
+        self.X = X
+        self.Y = Y
+        if one_hot : self.Y = one_hot_encoder(Y, model[-1])
         self.layers = len(self.model) - 1
         self.params = define_parameters(self.model)
         self.activation_func = None
@@ -29,51 +31,63 @@ class NN:
 
     def activation_function(self, activation='relu'):
         self.activation_func = activations[activation]
+        self.a_derivative = activation_derivatives[activation]
 
     def output_function(self, output='sigmoid'):
-        self.output_func = activations[activation]
+        self.output_func = activations[output]
+        self.a_derivative = activation_derivatives[output]
 
-    def loss_function(self, activation='log_loss'):
-        self.loss_func = activations[activation]
+    def loss_function(self, loss='log_loss'):
+        self.loss_func = losses[loss]
 
     def train(self, iterations=100000, cost_interval=100):
         for i in range (iterations):
             self.feed = forward_propagate(self.X, self.params, self.layers, self.activation_func, self.output_func)
             self.cost = calculate_cost(self.Y, self.feed, self.layers, self.loss_func)
-            self.grads = backwards_propagate(self.X, self.Y, self.data, self.layers)
+            self.grads = backwards_propagate(self.X, self.Y, self.feed, self.layers, self.a_derivative)
             self.params = update_params(self.params, self.grads,self.layers)
             if (i % cost_interval == 0) :
                 print(self.cost)
+
+        self.final_params = (self.params, self.activation_func, self.output_func)
         print(self.cost)
         print(self.params)
 
+    def predict(self):
+        num_outputs = self.model[-1]
+        self.results = forward_propagate(self.X, self.params, self.layers, self.activation_func, self.output_func)
+        Y_h = self.results[0]
+        if self.output_func == 'sigmoid' or num_outputs == 1:
+            predict_logistic_regression(Y_h, self.Y)
+        elif self.output_func == 'softmax' or num_outputs > 1:
+            predict_multi_class_classifier(Y_h, self.Y)
 
 #################################
 # Activation Functions
 #################################
 
 # activation function that returns a value between 0 and 1
-def sigmoid(Z):
+def sigmoid_func(Z):
     return (1/(1+np.exp(-Z)))
 
 # activation function that returns a value between -1 and 1
-def tanh(Z):
+def tanh_func(Z):
     return np.tanh(Z)
 
 # activation function that returns the identity of input or 0 if less than 0
-def relu(Z):
+def relu_func(Z):
     return np.maximum(0,Z)
 
 # activation function for multiclass outputs | returns probability measure
-def softmax(Z):
+def softmax_func(Z):
     ex = np.exp(Z)
     return ex/np.sum(ex, axis=0)
 
 activations = {
-    'sigmoid' :sigmoid,
-    'tanh' : tanh,
-    'relu' : relu,
-    'softmax' : softmax
+    'sigmoid' :sigmoid_func,
+    'tanh' : tanh_func,
+    'relu' : relu_func,
+    'softmax' : softmax_func
 }
 
 #################################
@@ -163,7 +177,7 @@ error_command = {
 def define_parameters(model):
     paramaters = dict()
     layers = len(model)-1
-    n_temp = n_x # number of neurons in the previous layer
+    n_temp = model[0] # number of neurons in the previous layer
     for layer in range (layers):
         pos = str(layer+1)
         # define dictionary keys for each weight/bias matrix accoridng to layer
@@ -186,9 +200,9 @@ def one_hot_encoder(Y, n):
     return result
 
 # performs forward propagtion
-def forward_propagate(X, parameters, layers, a_function='relu', o_function='sigmoid'):
-    activate_h = activations[a_function] # activation function for hidden layers
-    activate_o = activations[o_function] # activation function for output layer
+def forward_propagate(X, parameters, layers, a_function=relu_func, o_function=sigmoid_func):
+    activate_h = a_function # activation function for hidden layers
+    activate_o = o_function # activation function for output layer
     A = X # current layer matrix(activation)
     m = X.shape[1]
     neuron_cache = dict()
@@ -202,26 +216,24 @@ def forward_propagate(X, parameters, layers, a_function='relu', o_function='sigm
         key_w, key_b = ('W' + pos),('b' + pos) # used to access paramaters for network
         W, b = parameters[key_w], parameters[key_b]
         Z = np.dot(W, A) + b
-        if not layer == (layers - 1):  # conditional on if hidden/output layers is being calculated
-            A = activate_h(Z)
-        else:
+        if layer == (layers - 1):  # conditional on if hidden/output layers is being calculated
             A = activate_o(Z)
+        else:
+            A = activate_h(Z)
         neuron_cache[key_z], neuron_cache[key_a] = Z, A # save outputs into nueron_cache
     neuron_cache.update(parameters)
     assert(A.shape[1] == m)
-    assert(A.shape[0] == n_y)
     return A, neuron_cache # final output and neuron_cache returned
 
 # compute the cost of the neural network using selected loss function
-def calculate_cost(Y, data, layers, loss_function='cross_entropy'):
+def calculate_cost(Y, data, layers, loss_function=cross_entropy):
     Y_h, cache = data
-    cost_function = losses[loss_function]
-    return cost_function(Y_h, Y)
+    return loss_function(Y_h, Y)
 
 # performs backwards propagtion
-def backwards_propagate(X, Y, cache, layers,  l_function='log_loss'):
+def backwards_propagate(X, Y, cache, layers, derivative, l_function='log_loss'):
     Y_h, cache = cache
-    a_derivative = activation_derivatives[cache['activation']]
+    a_derivative = derivative
     gradient_updates = dict()
     for layer in range(layers, 0, -1):
         pos = layer
@@ -260,3 +272,37 @@ def update_params(params, gradients, layers, learning_rate=0.0005):
         if (key in params_keys):
             params[key] = params[key] - alpha * dP
     return params
+
+##############################
+# Prediction Functions
+##############################
+
+# computes preditction query from trained neural network/evaluates accuracy
+def predict_logistic_regression(Y_h, Y):
+    assert(Y_h.shape == Y.shape)
+    m = max(Y.shape[0], Y.shape[1])
+    Y_h[Y_h<0.5] = 0
+    Y_h[Y_h>=0.5] = 1
+    result = compute_prediction_accuracy(Y_h, Y)
+    print(result)
+
+def predict_multi_class_classifier(Y_h, Y):
+    assert(Y_h.shape == Y.shape)
+    m = max(Y.shape[0], Y.shape[1])
+    encoded_Y_h = softmax_converter(Y_h)
+    result = compute_prediction_accuracy(Y_h, Y)
+    print(result)
+
+# converts a softmax matrix to a matrix of only zeros and ones
+def softmax_converter(Y_h):
+    maxes = np.amax(Y_h, axis=0)
+    bool_matrix = np.apply_along_axis(np.equal, 1, Y_h, maxes)
+    one_hot_encoded = bool_matrix.astype(int)
+    return one_hot_encoded
+
+def compute_prediction_accuracy(Y_h, Y):
+    correct_predictions = np.equal(Y, encoded_Y_h)
+    num_correct = np.count_nonzero(score)
+    accuracy = num_correct/m
+    accuracy_string = '%.3f Percent of predictions correct' %(accuracy)
+    return accuracy_string
