@@ -28,19 +28,24 @@ class NN:
         self.activation_func = None
         self.output_func = None
         self.loss_func = None
+        validate_inputs(self.model, self.X, self.Y)
 
+    # adds or modifies the activation function and derivate for the nerual networks hidden layers
     def activation_function(self, activation='relu'):
         self.activation_func = activations[activation]
         self.a_derivative = activation_derivatives[activation]
 
+    # adds or modifies the activation function and derivate for the nerual networks output layer
     def output_function(self, output='sigmoid'):
         self.output_func = activations[output]
         self.o_derivative = activation_derivatives[output]
 
+    # adds or modifies the cost function of the neural network
     def loss_function(self, loss='log_loss'):
         self.loss_func = losses[loss]
         self.error = loss
 
+    # trains the neural network from given defintions
     def train(self, iterations=100000, cost_interval=100):
         for i in range (iterations):
             self.feed = forward_propagate(self.X, self.params, self.layers, self.activation_func, self.output_func)
@@ -150,7 +155,7 @@ def squared_error(Y_h, Y):
 def log_loss(Y_h, Y):
     # print(Y_h, Y)
     m = Y.shape[1]
-    Y_h[Y_h<=0] = 10**-8
+    Y_h[Y_h<=0] = 10**-8                # Save as constant
     # log_comp = log_comparison(Y_h, Y) + log_comparison(1-Y_h, 1-Y)
     log_comp =  np.multiply(Y, np.log(Y_h)) + np.multiply((1-Y), np.log((1-Y_h)))
     sum_layers = - np.sum(log_comp, axis=0)
@@ -165,6 +170,7 @@ def cross_entropy(Y_h, Y):
     mean = np.mean(sum_layers)
     return np.squeeze(mean)
 
+# dictionary containing loss functions
 losses = {
     'squared_error': squared_error,
     'cross_entropy': cross_entropy,
@@ -175,12 +181,14 @@ losses = {
 # Output Derivatives Functions
 ##############################
 
+# computes the output error of the neural networks last layer
 def output_error(Y_h, Y, loss_function='log_loss'):
     loss_string = error_command[loss_function]
     command_string = loss_string %('Y_h', 'Y')
     result = eval(command_string)
     return result
 
+# dictionary containing error command for calculations
 error_command = {
     'log_loss': '%s - %s',
     'cross_entropy': '(1 - %s) * %s'
@@ -317,6 +325,7 @@ def softmax_converter(Y_h):
     one_hot_encoded = bool_matrix.astype(int)
     return one_hot_encoded
 
+# computes the prediction accuracy of the neural network
 def compute_prediction_accuracy(Y_h, Y):
     m = Y.shape[1]
     num_incorrect = np.count_nonzero(Y_h - Y)/2
@@ -324,3 +333,15 @@ def compute_prediction_accuracy(Y_h, Y):
     accuracy = (num_correct/m) * 100
     accuracy_string = '%.3f %s of predictions correct' %(accuracy, '%')
     return accuracy_string
+
+# validate neural network model
+def validate_inputs(model, X, Y):
+    n_x, n_y = model[0], model[-1]
+    m = X.shape[1]
+    X_rank = np.linalg.matrix_rank(X)
+    Y_rank = np.linalg.matrix_rank(Y)
+    if Y_rank < 2: np.reshape(Y, (1,m))
+    assert(X.shape[0] == (n_x, m))
+    assert(Y.shape[0] == (n_y, m)
+    assert(X_rank == 2)
+    assert(Y_rank == 2)
