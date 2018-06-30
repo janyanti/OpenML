@@ -43,7 +43,7 @@ classifier = NN(model, X, Y, one_hot=True)
 
 ```
 The neural network is setup using a list with each element as the desired number of neurons in the given layer. The length of the model is how 'deep' the neural network is. Worth noting is the inclusion of the 'one_hot' argument in the neural network class. This is typically used when the NN is classifying more than 2 classes (in this case 3). More information on this can be found [here](https://hackernoon.com/what-is-one-hot-encoding-why-and-when-do-you-have-to-use-it-e3c6186d008f). 
-Next we will define our NN functions
+Next we will define our NN functions.
 
 ```
 # set up NN training functions
