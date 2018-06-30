@@ -29,6 +29,7 @@ class NN:
         self.output_func = None
         self.loss_func = None
         validate_inputs(self.model, self.X, self.Y)
+        validate_functions(self.activation_func, self.output_func, self.loss_func)
 
     # adds or modifies the activation function and derivate for the nerual networks hidden layers
     def activation_function(self, activation='relu'):
@@ -345,3 +346,11 @@ def validate_inputs(model, X, Y):
     assert(Y.shape[0] == (n_y, m)
     assert(X_rank == 2)
     assert(Y_rank == 2)
+
+def validate_functions(activation, output, loss_function):
+    if not activation: activation = relu
+    if not output: output = softmax
+    if not loss_function: loss_function = log_loss
+    assert(activation != None)
+    assert(output != None)
+    assert(loss_function != None)
