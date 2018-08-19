@@ -341,11 +341,9 @@ def validate_inputs(model, X, Y):
     m = X.shape[1]
     X_rank = np.linalg.matrix_rank(X)
     Y_rank = np.linalg.matrix_rank(Y)
-    if Y_rank < 2: np.reshape(Y, (1,m))
-    assert(X.shape[0] == (n_x, m))
-    assert(Y.shape[0] == (n_y, m)
-    assert(X_rank == 2)
-    assert(Y_rank == 2)
+    # if Y_rank < 2: np.reshape(Y, (1,m))
+    assert(X.shape == (n_x, m))
+    assert(Y.shape == (n_y, m))
 
 def validate_functions(activation, output, loss_function):
     if not activation: activation = relu
